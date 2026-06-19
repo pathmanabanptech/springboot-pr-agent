@@ -1,0 +1,56 @@
+name: SpringBoot PR Review Agent
+description: Reviews Java/SpringBoot pull requests using 3 parallel AI agents.
+
+inputs:
+  anthropic-api-key:
+    description: Anthropic API key for Claude
+    required: true
+  github-token:
+    description: GitHub token with pull-request read/write permissions
+    required: false
+    default: ${{ github.token }}
+  model-code:
+    description: Model for code/security/test agents
+    required: false
+    default: claude-haiku-4-5
+  model-synth:
+    description: Model for the synthesiser
+    required: false
+    default: claude-sonnet-4-6
+  max-diff-lines:
+    description: Maximum diff lines before switching to file-list-only mode
+    required: false
+    default: "5000"
+  post-comment:
+    description: Set to "false" for a dry-run (skips posting the PR comment)
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Run PR review agent
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        MODEL_CODE: ${{ inputs.model-code }}
+        MODEL_SYNTH: ${{ inputs.model-synth }}
+        MAX_DIFF_LINES: ${{ inputs.max-diff-lines }}
+        POST_COMMENT: ${{ inputs.post-comment }}
+      run: python action/main.py
