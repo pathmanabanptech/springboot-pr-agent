@@ -3,8 +3,17 @@ description: Reviews Java/SpringBoot pull requests using 3 parallel AI agents.
 
 inputs:
   anthropic-api-key:
-    description: Anthropic API key for Claude
-    required: true
+    description: Anthropic API key (legacy — use llm-api-key for other providers)
+    required: false
+    default: ""
+  llm-api-key:
+    description: API key for the chosen LLM provider (overrides anthropic-api-key)
+    required: false
+    default: ""
+  model-provider:
+    description: LLM provider — anthropic | openai | google | huggingface
+    required: false
+    default: anthropic
   github-token:
     description: GitHub token with pull-request read/write permissions
     required: false
@@ -49,6 +58,8 @@ runs:
         PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        LLM_API_KEY: ${{ inputs.llm-api-key }}
+        MODEL_PROVIDER: ${{ inputs.model-provider }}
         MODEL_CODE: ${{ inputs.model-code }}
         MODEL_SYNTH: ${{ inputs.model-synth }}
         MAX_DIFF_LINES: ${{ inputs.max-diff-lines }}

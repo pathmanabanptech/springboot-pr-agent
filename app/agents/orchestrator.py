@@ -3,11 +3,11 @@ import operator
 import re
 from typing import Annotated, TypedDict
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
 from app.config import Config
+from app.llm import get_llm
 from app.tools.github import DiffContext, fetch_pr_diff, load_review_rules, post_review_comment
 from app.tools.java_parser import extract_signals
 
@@ -90,10 +90,13 @@ def _review_node(state: AgentState) -> dict:
         f"\n\n## Diff\n```diff\n{diff['diff_text']}\n```"
     )
 
-    llm = ChatAnthropic(model=cfg.model_code, api_key=cfg.anthropic_api_key, max_tokens=4096)
+    llm = get_llm(cfg.model_provider, cfg.model_code, cfg.llm_api_key)
     response = llm.invoke([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=human_content)])
 
     raw = response.content
+    # langchain-anthropic ≥0.3 returns a list of content blocks; flatten to string
+    if isinstance(raw, list):
+        raw = "".join(b["text"] if isinstance(b, dict) else str(b) for b in raw)
     # extract JSON array even if the model wrapped it in markdown fences
     json_match = re.search(r"\[.*\]", raw, re.DOTALL)
     if not json_match:
